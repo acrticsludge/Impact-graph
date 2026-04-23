@@ -11,12 +11,17 @@
   "scripts": {
     "build": "tsc",
     "dev": "tsc --watch",
-    "test": "node --experimental-strip-types --test tests/**/*.test.ts",
-    "test:watch": "node --experimental-strip-types --test --watch tests/**/*.test.ts",
+    "test": "tsx --test tests/**/*.test.ts",
+    "test:watch": "tsx --watch --test tests/**/*.test.ts",
     "lint": "eslint src/**/*.ts",
     "clean": "rm -rf dist"
   },
-  "keywords": ["mcp", "typescript", "static-analysis", "impact-analysis"],
+  "keywords": [
+    "mcp",
+    "typescript",
+    "static-analysis",
+    "impact-analysis"
+  ],
   "license": "MIT",
   "dependencies": {
     "@modelcontextprotocol/sdk": "^1.0.0",
@@ -26,6 +31,7 @@
   "devDependencies": {
     "@types/node": "^22.0.0",
     "eslint": "^9.0.0",
+    "tsx": "^4.21.0",
     "typescript-eslint": "^8.0.0"
   },
   "engines": {
