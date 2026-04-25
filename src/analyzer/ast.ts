@@ -57,6 +57,7 @@ export function extractSymbols(code: string): ExtractedSymbols {
   const calls: CallSymbol[] = [];
 
   function isExported(node: ts.Node): boolean {
+    if (!ts.canHaveModifiers(node)) return false;
     return node.modifiers?.some(m => m.kind === ts.SyntaxKind.ExportKeyword) ?? false;
   }
 
@@ -113,7 +114,7 @@ export function extractSymbols(code: string): ExtractedSymbols {
     if (ts.isImportDeclaration(node)) {
       const importClause = node.importClause;
       const moduleName = node.moduleSpecifier.getText(sourceFile).replace(/['"]/g, '');
-      const isTypeOnly = node.isTypeOnly;
+      const isTypeOnly = importClause?.isTypeOnly ?? false;
 
       const namedImports: string[] = [];
       let namespaceImport: string | null = null;
