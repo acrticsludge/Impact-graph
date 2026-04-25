@@ -1,20 +1,22 @@
-# Impact Graph MCP Plugin — CLAUDE.md
+# Impact Graph MCP Plugin - CLAUDE.md
 
 ## Project Overview
 
-Impact Graph is an MCP plugin that analyzes how changes to a function, file, or module affect the rest of a codebase. It helps prevent unsafe edits by exposing dependencies, usage patterns, and risk signals before modifications are made.
+Impact Graph is a local MCP plugin that helps developers and AI agents understand the blast radius of code changes before editing. It analyzes TypeScript projects with the TypeScript Compiler API and returns structured impact, dependency, risk, entry point, and layer data.
 
-It is designed for developers and AI agents to make **safe, informed code changes**.
+The project goal is safe, dependency-aware code modification.
 
 ---
 
 ## Stack
 
 - **Language:** TypeScript
-- **Runtime:** Node.js
-- **Analysis Engine:** TypeScript Compiler API (AST-based)
-- **Interface:** MCP (Model Context Protocol)
-- **Execution:** Local (user machine or project environment)
+- **Runtime:** Node.js 20+
+- **Analysis Engine:** TypeScript Compiler API
+- **Interface:** Model Context Protocol (MCP), stdio transport
+- **CLI:** `impact-graph`
+- **Package:** `impact-graph-mcp`
+- **Publishing:** GitHub Release triggers GitHub Actions npm publish workflow
 
 ---
 
@@ -22,14 +24,16 @@ It is designed for developers and AI agents to make **safe, informed code change
 
 ### 1. Impact Analysis (`analyze_impact`)
 
-Analyzes the consequences of modifying a given target.
+Analyzes the consequences of modifying a function, file, or module.
 
 #### Input
 
-- `target`: function name, file path, or module
+- `target`: function name, file path, or module identifier
+- `root_dir`: optional project root directory; defaults to the current working directory
 
 #### Output
 
+- `target`
 - `direct_dependents`
 - `indirect_dependents`
 - `usage_count`
@@ -41,44 +45,49 @@ Analyzes the consequences of modifying a given target.
 
 ---
 
-### 2. Dependency Mapping
+### 2. Project Auto-Scanning
 
-Builds a graph of:
+The MCP tool scans TypeScript files from the selected project root and skips generated or dependency folders such as:
 
-- function calls
+- `node_modules`
+- `dist`
+- `.git`
+
+---
+
+### 3. Dependency Mapping
+
+The analyzer builds a graph from:
+
+- exported symbols
+- local function calls
 - module imports
-- usage relationships
+- file-level usage relationships
 
-Used internally to compute impact.
-
----
-
-### 3. Risk Scoring Engine
-
-Assigns a risk score based on:
-
-- usage frequency
-- dependency depth
-- involvement in critical paths
-- presence in entry points (API, CLI, etc.)
+This graph powers direct and indirect dependent detection.
 
 ---
 
-### 4. Entry Point Detection
+### 4. Risk Scoring
 
-Identifies whether code is used in:
+The risk engine scores a target using:
 
-- API routes
-- server handlers
-- CLI scripts
+- usage count
+- direct dependent count
+- indirect dependent count
+- entry point involvement
+- affected layers
+- critical path signals
 
-These significantly increase risk.
+Risk scores are returned as structured data so the agent can explain change safety before editing.
 
 ---
 
-### 5. Layer Detection
+### 5. Entry Point and Layer Detection
 
-Categorizes affected areas:
+Entry point detection recognizes API, route, handler, CLI, and command-style paths.
+
+Layer detection categorizes affected paths into:
 
 - `api`
 - `auth`
@@ -88,142 +97,123 @@ Categorizes affected areas:
 
 ---
 
-### 6. Structured Output for AI
+### 6. CLI Install Command
 
-All outputs are returned as structured JSON.
+Running:
 
-The tool does NOT interpret results—it provides signals for reasoning.
+```bash
+impact-graph install
+```
+
+adds an `impact-graph` MCP server entry to `.mcp.json` in the current project if one does not already exist.
+
+Running `impact-graph` without a subcommand starts the MCP server over stdio.
 
 ---
 
 ## Project Structure
 
-```
+```text
 /src
   /analyzer
     ast.ts
+    fs.ts
     graph.ts
     usage.ts
+  /cli
+    install.ts
   /engine
-    risk.ts
     layers.ts
+    risk.ts
   /mcp
     server.ts
-    tools/
+    /tools
       analyzeImpact.ts
   index.ts
+/tests
+  /analyzer
+  /engine
+  /mcp
 ```
+
+---
+
+## Development Commands
+
+Use `npm.cmd` on Windows PowerShell if script execution policy blocks `npm`.
+
+```bash
+npm run lint
+npm test
+npm run build
+npm pack --dry-run
+```
+
+Before release, run all four commands and confirm the package contents only include intended npm files.
+
+---
+
+## Publishing
+
+Publishing is handled by GitHub Actions in `.github/workflows/publish.yml`.
+
+Release flow:
+
+1. Update docs/code as needed.
+2. Run lint, tests, build, and pack dry-run.
+3. Bump the package version with `npm version`.
+4. Push `main` and the release tag.
+5. Publish a GitHub Release for that tag.
+6. GitHub Actions publishes to npm using Trusted Publishing.
+
+The workflow runs:
+
+- `npm ci`
+- `npm run lint`
+- `npm test`
+- `npm run build`
+- `npm publish`
 
 ---
 
 ## Key Rules for Claude
 
-- ALWAYS call `analyze_impact` before making non-trivial code changes
-- NEVER assume dependency relationships without using the tool
-- Use returned data to guide decisions, not guesses
-- Prefer structured data over intuition
-- Highlight risk before suggesting modifications
-- If risk is high, proceed cautiously and explain why
+- ALWAYS call `analyze_impact` before making non-trivial code changes.
+- NEVER assume dependency relationships without using impact data.
+- Assess risk using `risk_score`, `usage_count`, `entry_points`, and `layers_affected`.
+- Explain direct breakage from `direct_dependents`.
+- Explain possible indirect breakage from `indirect_dependents`.
+- Highlight authentication, API, database, core logic, or external behavior involvement.
+- Prefer minimal, targeted edits when risk is high.
+- If risk is critical, warn explicitly before proceeding.
+- Run the relevant validation commands after changes.
 
 ---
 
-## MCP Tools: impact-graph
+## Project-Local `/me` Practices
 
-**IMPORTANT: This plugin provides structural understanding of the codebase. ALWAYS use it BEFORE making code modifications or reasoning about dependencies.**
+This repo contains a personal knowledge base in `/me`. It is intentionally ignored by git and should not be committed.
 
----
+Relevant practices for this project:
 
-### When to use impact-graph FIRST
-
-- Before editing any function, file, or module
-- When asked:
-  - “What will break if…”
-  - “Where is this used?”
-  - “Is this safe to change?”
-
-- During refactoring tasks
-- During debugging where dependencies are unclear
-- When working across multiple files
+- Keep `/me`, `graphify-out`, coverage, dependency folders, build output, logs, and env files uncommitted.
+- Use present-tense imperative commit messages under 72 characters.
+- Run lint, type/build, and tests before commits.
+- Use TypeScript throughout.
+- Avoid unnecessary dependencies and speculative abstractions.
+- Add comments only where logic is not self-evident.
 
 ---
 
-### When NOT to use
-
-- Simple syntax or isolated code questions
-- Clearly local changes with no external usage
-- Pure explanations with no modification intent
-
----
-
-### Tool: `analyze_impact`
-
-#### Purpose
-
-Determine the impact of modifying a target.
-
-#### Returns
-
-- `direct_dependents`: immediate callers/usages
-- `indirect_dependents`: downstream effects
-- `usage_count`: frequency of usage
-- `risk_score`: numerical impact score
-- `risk_factors`: reasons contributing to risk
-- `entry_points`: whether used in API/CLI
-- `layers_affected`: system layers involved
-- `is_critical`: whether part of core systems
-
----
-
-### How to Interpret Results
-
-- High `usage_count` → widespread impact
-- Many dependents → tightly coupled code
-- Entry point involvement → externally visible changes
-- Multiple layers → cross-system impact
-- `is_critical = true` → high-risk modification
-
----
-
-### Required Workflow
+## Safety Workflow
 
 When modifying code:
 
-1. Call `analyze_impact`
-2. Review risk and affected components
-3. Explain consequences
-4. Suggest validation steps
-5. Proceed with careful changes
+1. Run `analyze_impact` for the relevant function, file, or module.
+2. Classify risk as safe, moderate, high, or critical.
+3. Explain what breaks immediately and what may break indirectly.
+4. Identify affected layers and external behavior.
+5. Choose the smallest safe change.
+6. Validate with tests and build.
 
----
-
-### Safety Guidelines
-
-- Do NOT modify code blindly
-- Always analyze impact for non-trivial changes
-- Clearly communicate risk to the user
-- Suggest tests or checks after changes
-- Prefer minimal, targeted edits in high-risk areas
-
----
-
-## /me Context Integration
-
-This project may include a `/me` directory containing:
-
-- coding rules
-- stack conventions
-- audit requirements
-- architectural preferences
-
-### Instructions
-
-- ALWAYS respect rules defined in `/me`
-- Treat `/me` as higher priority than general assumptions
-- Apply `/me` practices when suggesting changes
-- If `/me` conflicts with default behavior, follow `/me`
-
----
-
-## Goal
-
-Enable safe, dependency-aware code changes by providing accurate impact analysis before modifications.
+For docs-only or release-only changes, still confirm the affected targets have no runtime dependents when practical.

@@ -9,7 +9,7 @@ export class MCPServer {
 
   constructor() {
     this.server = new Server(
-      { name: 'impact-graph', version: '0.1.0' },
+      { name: 'impact-graph', version: '0.1.2' },
       { capabilities: { tools: {} } }
     );
     this.setupHandlers();
