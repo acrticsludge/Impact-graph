@@ -9,6 +9,24 @@
   },
   "main": "dist/index.js",
   "types": "dist/index.d.ts",
+  "exports": {
+    ".": {
+      "types": "./dist/index.d.ts",
+      "import": "./dist/index.js"
+    },
+    "./web/GraphView": {
+      "types": "./dist/web/GraphView.d.ts",
+      "import": "./dist/web/GraphView.js"
+    },
+    "./graph": {
+      "types": "./dist/graph/graphTypes.d.ts",
+      "import": "./dist/graph/graphTypes.js"
+    },
+    "./graph/buildGraph": {
+      "types": "./dist/graph/buildGraph.d.ts",
+      "import": "./dist/graph/buildGraph.js"
+    }
+  },
   "files": [
     "dist"
   ],
@@ -32,12 +50,23 @@
   "license": "MIT",
   "dependencies": {
     "@modelcontextprotocol/sdk": "^1.0.0",
+    "d3-force": "^3.0.0",
     "typescript": "^5.7.0",
     "zod": "^3.24.0"
   },
+  "peerDependencies": {
+    "react": ">=18.0.0"
+  },
+  "peerDependenciesMeta": {
+    "react": {
+      "optional": true
+    }
+  },
   "devDependencies": {
     "@eslint/js": "^9.39.4",
+    "@types/d3-force": "^3.0.10",
     "@types/node": "^22.0.0",
+    "@types/react": "^19.2.14",
     "eslint": "^9.0.0",
     "tsx": "^4.21.0",
     "typescript-eslint": "^8.0.0"

@@ -2,7 +2,7 @@
 
 ## Project Overview
 
-Impact Graph is a local MCP plugin that helps developers and AI agents understand the blast radius of code changes before editing. It analyzes TypeScript projects with the TypeScript Compiler API and returns structured impact, dependency, risk, entry point, layer, and decision guidance data.
+Impact Graph is a local MCP plugin that helps developers and AI agents understand the blast radius of code changes before editing. It analyzes TypeScript projects with the TypeScript Compiler API and returns structured impact, dependency, risk, entry point, layer, decision guidance, and graph visualization data.
 
 The project goal is safe, dependency-aware code modification with actionable, deterministic guidance.
 
@@ -15,6 +15,7 @@ The project goal is safe, dependency-aware code modification with actionable, de
 - **Analysis Engine:** TypeScript Compiler API
 - **Interface:** Model Context Protocol (MCP), stdio transport
 - **CLI:** `impact-graph`
+- **Visualization:** CLI-generated HTML and reusable React/D3 SVG viewer
 - **Package:** `impact-graph-mcp`
 - **Publishing:** GitHub Release triggers GitHub Actions npm publish workflow
 
@@ -48,6 +49,7 @@ Analyzes the consequences of modifying a function, file, or module.
 - `safe_changes`
 - `risky_changes`
 - `top_dependents`
+- `graph`
 
 ---
 
@@ -72,9 +74,37 @@ The analyzer builds a graph from:
 
 This graph powers direct and indirect dependent detection.
 
+The MCP response now includes a bounded `graph` object for visualization:
+
+- `nodes`: target, direct dependents, dependencies, and one-level indirect nodes
+- `edges`: `calls` and `imports` relationships
+- node metadata: label, type, layer, and low/moderate/high risk
+
+Graphs are centered on the requested target and capped for fast MVP rendering.
+
 ---
 
-### 4. Risk Scoring
+### 4. Visualization
+
+Running:
+
+```bash
+impact-graph visualize <target>
+```
+
+runs impact analysis for the current project, writes a temporary standalone HTML graph, and opens it in the default browser.
+
+The package also exposes:
+
+```ts
+import { GraphView } from 'impact-graph-mcp/web/GraphView';
+```
+
+`GraphView` is a minimal React component backed by `d3-force`. React is a peer dependency for web consumers.
+
+---
+
+### 5. Risk Scoring
 
 The risk engine scores a target using:
 
@@ -89,7 +119,7 @@ Risk scores are returned as structured data so the agent can explain change safe
 
 ---
 
-### 5. Decision Guidance
+### 6. Decision Guidance
 
 The decision engine adds deterministic guidance without using LLMs or external APIs.
 
@@ -106,7 +136,7 @@ This guidance is rule-based TypeScript logic in `src/engine/decision.ts`.
 
 ---
 
-### 6. Entry Point and Layer Detection
+### 7. Entry Point and Layer Detection
 
 Entry point detection recognizes API, route, handler, CLI, and command-style paths.
 
@@ -120,7 +150,7 @@ Layer detection categorizes affected paths into:
 
 ---
 
-### 7. CLI Install Command
+### 8. CLI Commands
 
 Running:
 
@@ -131,6 +161,14 @@ impact-graph install
 adds an `impact-graph` MCP server entry to `.mcp.json` in the current project if one does not already exist.
 
 Running `impact-graph` without a subcommand starts the MCP server over stdio.
+
+Running:
+
+```bash
+impact-graph visualize loginUser
+```
+
+opens a browser visualization for the selected target.
 
 ---
 
@@ -145,14 +183,20 @@ Running `impact-graph` without a subcommand starts the MCP server over stdio.
     usage.ts
   /cli
     install.ts
+    visualize.ts
   /engine
     decision.ts
     layers.ts
     risk.ts
+  /graph
+    buildGraph.ts
+    graphTypes.ts
   /mcp
     server.ts
     /tools
       analyzeImpact.ts
+  /web
+    GraphView.tsx
   index.ts
 /tests
   /analyzer

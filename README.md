@@ -55,6 +55,7 @@ Analyzes the impact of modifying a function, file, or module.
 - `safe_changes`: Changes that are usually safe for this target
 - `risky_changes`: Changes that need extra care for this target
 - `top_dependents`: The most important dependents to inspect first
+- `graph`: Bounded dependency graph centered on the target
 
 Example decision-oriented fields:
 
@@ -86,9 +87,57 @@ Example decision-oriented fields:
   ],
   "top_dependents": [
     "src/app/api/login/route.ts"
-  ]
+  ],
+  "graph": {
+    "nodes": [
+      {
+        "id": "loginUser",
+        "label": "loginUser",
+        "type": "function",
+        "layer": "auth",
+        "risk": "moderate"
+      },
+      {
+        "id": "src/app/api/login/route.ts",
+        "label": "route.ts",
+        "type": "file",
+        "layer": "api",
+        "risk": "low"
+      }
+    ],
+    "edges": [
+      {
+        "from": "src/app/api/login/route.ts",
+        "to": "loginUser",
+        "type": "calls"
+      }
+    ]
+  }
 }
 ```
+
+## Visualization
+
+Open a local browser visualization for a target:
+
+```bash
+impact-graph visualize loginUser
+```
+
+The CLI runs `analyze_impact`, writes a temporary standalone HTML file, and opens it in your default browser. If the browser cannot be opened, it prints the file path and a compact terminal summary.
+
+For React or Next.js apps, the package also exposes a minimal SVG force graph component:
+
+```tsx
+import { GraphView } from 'impact-graph-mcp/web/GraphView';
+import type { ImpactGraph } from 'impact-graph-mcp/graph';
+
+export function GraphPage({ graph }: { graph: ImpactGraph }) {
+  return <GraphView graph={graph} target="loginUser" />;
+}
+```
+
+The viewer uses `d3-force`, colors high-risk nodes red, moderate-risk nodes yellow, and low-risk nodes green.
 
 ## Development
 

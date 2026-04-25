@@ -8,6 +8,7 @@ test('analyzeImpact returns existing fields and decision guidance', async () => 
       'src/auth/session.ts',
       `
       export function loginUser() {
+        auditLogin();
         return true;
       }
       `,
@@ -62,4 +63,11 @@ test('analyzeImpact returns existing fields and decision guidance', async () => 
   assert.ok(result.safe_changes.includes('internal logic refactors'));
   assert.ok(result.risky_changes.includes('altering authentication or authorization logic'));
   assert.ok(result.top_dependents.length <= 5);
+  assert.ok(result.graph.nodes.length > 0);
+  assert.ok(result.graph.nodes.length <= 30);
+  assert.ok(result.graph.nodes.some(node => node.id === 'loginUser' && node.type === 'function'));
+  assert.ok(result.graph.nodes.some(node => node.id === 'src/app/api/login/route.ts' && node.layer === 'api'));
+  assert.ok(result.graph.nodes.some(node => node.id === 'src/db/audit.ts#auditLogin' && node.type === 'function'));
+  assert.ok(result.graph.edges.some(edge => edge.from === 'src/app/api/login/route.ts' && edge.to === 'loginUser'));
+  assert.ok(result.graph.edges.some(edge => edge.from === 'loginUser' && edge.to === 'src/db/audit.ts#auditLogin'));
 });

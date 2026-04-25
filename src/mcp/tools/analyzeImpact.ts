@@ -3,6 +3,8 @@ import { analyzeUsage, FileUsage } from '../../analyzer/usage.js';
 import { calculateRiskScore, RiskFactors } from '../../engine/risk.js';
 import { detectLayers } from '../../engine/layers.js';
 import { buildDecisionOutput, DecisionOutput, DependentCandidate, ImpactSummary } from '../../engine/decision.js';
+import { buildImpactGraph } from '../../graph/buildGraph.js';
+import { ImpactGraph } from '../../graph/graphTypes.js';
 import { readProjectFiles, findTypeScriptFiles } from '../../analyzer/fs.js';
 
 export interface ImpactAnalysisResult extends DecisionOutput {
@@ -21,6 +23,7 @@ export interface ImpactAnalysisResult extends DecisionOutput {
   safe_changes: string[];
   risky_changes: string[];
   top_dependents: string[];
+  graph: ImpactGraph;
 }
 
 const ENTRY_POINT_PATTERNS = [/app\/api\//, /\/route\.ts$/, /\/handler\.ts$/, /cli\//, /\/command\//];
@@ -108,6 +111,16 @@ export async function analyzeImpact(
     dependencyDepth,
     dependents: dependentCandidates,
   });
+  const graph = buildImpactGraph({
+    target,
+    files,
+    fileUsages,
+    symbolGraph,
+    definingFiles,
+    directDependents,
+    indirectDependents,
+    isEntryPoint,
+  });
 
   return {
     target,
@@ -119,6 +132,7 @@ export async function analyzeImpact(
     entry_points: entryPoints,
     layers_affected: layersAffected,
     is_critical: riskResult.score > 75 || riskFactors.isCriticalPath,
+    graph,
     ...decisionOutput,
   };
 }
