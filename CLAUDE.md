@@ -2,9 +2,9 @@
 
 ## Project Overview
 
-Impact Graph is a local MCP plugin that helps developers and AI agents understand the blast radius of code changes before editing. It analyzes TypeScript projects with the TypeScript Compiler API and returns structured impact, dependency, risk, entry point, and layer data.
+Impact Graph is a local MCP plugin that helps developers and AI agents understand the blast radius of code changes before editing. It analyzes TypeScript projects with the TypeScript Compiler API and returns structured impact, dependency, risk, entry point, layer, and decision guidance data.
 
-The project goal is safe, dependency-aware code modification.
+The project goal is safe, dependency-aware code modification with actionable, deterministic guidance.
 
 ---
 
@@ -42,6 +42,12 @@ Analyzes the consequences of modifying a function, file, or module.
 - `entry_points`
 - `layers_affected`
 - `is_critical`
+- `impact_summary`
+- `recommended_strategy`
+- `suggested_tests`
+- `safe_changes`
+- `risky_changes`
+- `top_dependents`
 
 ---
 
@@ -83,7 +89,24 @@ Risk scores are returned as structured data so the agent can explain change safe
 
 ---
 
-### 5. Entry Point and Layer Detection
+### 5. Decision Guidance
+
+The decision engine adds deterministic guidance without using LLMs or external APIs.
+
+It computes:
+
+- severity and blast radius
+- primary concern from risk factors and affected layers
+- recommended strategy
+- suggested tests
+- safe and risky change categories
+- top dependents to inspect first
+
+This guidance is rule-based TypeScript logic in `src/engine/decision.ts`.
+
+---
+
+### 6. Entry Point and Layer Detection
 
 Entry point detection recognizes API, route, handler, CLI, and command-style paths.
 
@@ -97,7 +120,7 @@ Layer detection categorizes affected paths into:
 
 ---
 
-### 6. CLI Install Command
+### 7. CLI Install Command
 
 Running:
 
@@ -123,6 +146,7 @@ Running `impact-graph` without a subcommand starts the MCP server over stdio.
   /cli
     install.ts
   /engine
+    decision.ts
     layers.ts
     risk.ts
   /mcp

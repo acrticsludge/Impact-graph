@@ -2,9 +2,10 @@ import { DependencyGraph } from '../../analyzer/graph.js';
 import { analyzeUsage, FileUsage } from '../../analyzer/usage.js';
 import { calculateRiskScore, RiskFactors } from '../../engine/risk.js';
 import { detectLayers } from '../../engine/layers.js';
+import { buildDecisionOutput, DecisionOutput, DependentCandidate, ImpactSummary } from '../../engine/decision.js';
 import { readProjectFiles, findTypeScriptFiles } from '../../analyzer/fs.js';
 
-export interface ImpactAnalysisResult {
+export interface ImpactAnalysisResult extends DecisionOutput {
   target: string;
   direct_dependents: string[];
   indirect_dependents: string[];
@@ -14,6 +15,12 @@ export interface ImpactAnalysisResult {
   entry_points: string[];
   layers_affected: string[];
   is_critical: boolean;
+  impact_summary: ImpactSummary;
+  recommended_strategy: string[];
+  suggested_tests: string[];
+  safe_changes: string[];
+  risky_changes: string[];
+  top_dependents: string[];
 }
 
 const ENTRY_POINT_PATTERNS = [/app\/api\//, /\/route\.ts$/, /\/handler\.ts$/, /cli\//, /\/command\//];
@@ -80,6 +87,27 @@ export async function analyzeImpact(
   };
 
   const riskResult = calculateRiskScore(riskFactors, true);
+  const allDependents = [...directDependents, ...indirectDependents];
+  const dependencyDepth = getMaxDependencyDepth(symbolGraph, directDependents);
+  const dependentCandidates: DependentCandidate[] = allDependents.map(filePath => ({
+    path: filePath,
+    usageCount: symbolGraph.getCallers(filePath).length,
+    isEntryPoint: isEntryPoint(filePath),
+    layers: detectLayers([filePath]),
+  }));
+  const decisionOutput = buildDecisionOutput({
+    target,
+    riskScore: riskResult.score,
+    riskFactors: riskResult.breakdown,
+    usageCount: directDependents.length,
+    directDependents,
+    indirectDependents,
+    entryPoints,
+    layersAffected,
+    isCritical: riskResult.score > 75 || riskFactors.isCriticalPath,
+    dependencyDepth,
+    dependents: dependentCandidates,
+  });
 
   return {
     target,
@@ -91,7 +119,28 @@ export async function analyzeImpact(
     entry_points: entryPoints,
     layers_affected: layersAffected,
     is_critical: riskResult.score > 75 || riskFactors.isCriticalPath,
+    ...decisionOutput,
   };
+}
+
+function getMaxDependencyDepth(graph: DependencyGraph, directDependents: string[]): number {
+  let maxDepth = 0;
+
+  for (const dependent of directDependents) {
+    maxDepth = Math.max(maxDepth, getCallerDepth(graph, dependent, new Set()));
+  }
+
+  return maxDepth;
+}
+
+function getCallerDepth(graph: DependencyGraph, node: string, visited: Set<string>): number {
+  if (visited.has(node)) return 0;
+  visited.add(node);
+
+  const callers = graph.getCallers(node);
+  if (callers.length === 0) return 0;
+
+  return 1 + Math.max(...callers.map(caller => getCallerDepth(graph, caller, new Set(visited))));
 }
 
 export async function analyzeImpactForPath(
