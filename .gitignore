@@ -5,6 +5,7 @@ dist/
 .env
 .env.local
 graphify-out/
+.graphify_*
 coverage/
 /me
 /docs
