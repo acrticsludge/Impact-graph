@@ -1,6 +1,12 @@
 #!/usr/bin/env node
 
-import { MCPServer } from './mcp/server.js';
+const command = process.argv[2];
 
-const server = new MCPServer();
-await server.start();
+if (command === 'install') {
+  const { runInstall } = await import('./cli/install.js');
+  await runInstall();
+} else {
+  const { MCPServer } = await import('./mcp/server.js');
+  const server = new MCPServer();
+  await server.start();
+}
