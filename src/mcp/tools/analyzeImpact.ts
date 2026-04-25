@@ -1,5 +1,5 @@
 import { DependencyGraph } from '../../analyzer/graph.js';
-import { analyzeUsage, buildFileGraph, FileUsage } from '../../analyzer/usage.js';
+import { analyzeUsage, FileUsage } from '../../analyzer/usage.js';
 import { calculateRiskScore, RiskFactors } from '../../engine/risk.js';
 import { detectLayers } from '../../engine/layers.js';
 import { readProjectFiles, findTypeScriptFiles } from '../../analyzer/fs.js';

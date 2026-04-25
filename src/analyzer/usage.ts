@@ -1,4 +1,4 @@
-import { extractSymbols, ExtractedSymbols } from './ast.js';
+import { extractSymbols } from './ast.js';
 import { DependencyGraph } from './graph.js';
 
 export interface LocalCall {
