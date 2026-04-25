@@ -2,7 +2,7 @@
   "mcpServers": {
     "impact-graph": {
       "command": "node",
-      "args": ["dist/index.js"],
+      "args": ["c:/Anubhav/Web Dev Projects/Impact-graph/dist/index.js"],
       "type": "stdio",
       "cwd": "."
     }

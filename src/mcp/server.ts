@@ -1,7 +1,7 @@
 import { Server } from '@modelcontextprotocol/sdk/server/index.js';
 import { StdioServerTransport } from '@modelcontextprotocol/sdk/server/stdio.js';
 import { CallToolRequestSchema, ListToolsRequestSchema } from '@modelcontextprotocol/sdk/types.js';
-import { analyzeImpact } from './tools/analyzeImpact.js';
+import { analyzeImpactForPath } from './tools/analyzeImpact.js';
 import { z } from 'zod';
 
 export class MCPServer {
@@ -20,12 +20,12 @@ export class MCPServer {
       tools: [
         {
           name: 'analyze_impact',
-          description: 'Analyze the impact of modifying a function, file, or module',
+          description: 'Analyze the impact of modifying a function, file, or module in the current project',
           inputSchema: {
             type: 'object',
             properties: {
-              target: { type: 'string', description: 'The function name, file path, or module to analyze' },
-              files: { type: 'object', description: 'Map of file paths to file contents', additionalProperties: { type: 'string' } },
+              target: { type: 'string', description: 'Function name, file path, or module to analyze' },
+              root_dir: { type: 'string', description: 'Project root directory (defaults to cwd)' },
             },
             required: ['target'],
           },
@@ -37,9 +37,9 @@ export class MCPServer {
       const { name, arguments: args } = request.params;
 
       if (name === 'analyze_impact') {
-        const parsed = z.object({ target: z.string(), files: z.record(z.string()).optional() }).parse(args);
-        const files = parsed.files ? new Map(Object.entries(parsed.files)) : new Map<string, string>();
-        const result = await analyzeImpact(parsed.target, files);
+        const parsed = z.object({ target: z.string(), root_dir: z.string().optional() }).parse(args);
+        const rootDir = parsed.root_dir ?? process.cwd();
+        const result = await analyzeImpactForPath(parsed.target, rootDir);
         return { content: [{ type: 'text', text: JSON.stringify(result, null, 2) }] };
       }
 
@@ -50,6 +50,6 @@ export class MCPServer {
   async start(): Promise<void> {
     const transport = new StdioServerTransport();
     await this.server.connect(transport);
-    console.error('Impact Graph MCP server running on stdio');
+    console.error(`Impact Graph MCP server running (root: ${process.cwd()})`);
   }
 }
