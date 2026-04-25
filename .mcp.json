@@ -1,0 +1,10 @@
+{
+  "mcpServers": {
+    "impact-graph": {
+      "command": "node",
+      "args": ["dist/index.js"],
+      "type": "stdio",
+      "cwd": "."
+    }
+  }
+}
