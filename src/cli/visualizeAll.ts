@@ -1,4 +1,4 @@
-export async function runVisualizeAll(rootDir: string): Promise<void> {
-  // Stub implementation - to be implemented in Task 3
-  console.log(`visualizeAll is not yet implemented for: ${rootDir}`);
+export async function runVisualizeAll(_rootDir: string): Promise<void> {
+  console.error('visualizeAll is not yet implemented. Use: impact-graph visualize <target>');
+  process.exitCode = 1;
 }
