@@ -40,6 +40,8 @@ Analyzes the consequences of modifying a function, file, or module.
 - `usage_count`
 - `risk_score`
 - `risk_factors`
+- `risk_explanation` — human-readable reasons behind the risk score
+- `next_actions` — prioritized, deduped checklist of safe modification steps (max 7)
 - `entry_points`
 - `layers_affected`
 - `is_critical`
@@ -49,7 +51,8 @@ Analyzes the consequences of modifying a function, file, or module.
 - `safe_changes`
 - `risky_changes`
 - `top_dependents`
-- `graph`
+- `graph` — full bounded dependency graph (up to 30 nodes)
+- `focus_graph` — filtered high-signal graph (up to 20 nodes, highest-importance nodes only)
 
 ---
 
@@ -74,13 +77,18 @@ The analyzer builds a graph from:
 
 This graph powers direct and indirect dependent detection.
 
-The MCP response now includes a bounded `graph` object for visualization:
+The MCP response includes two graph objects:
 
+**`graph`** — bounded full graph (up to 30 nodes):
 - `nodes`: target, direct dependents, dependencies, and one-level indirect nodes
 - `edges`: `calls` and `imports` relationships
 - node metadata: label, type, layer, and low/moderate/high risk
 
-Graphs are centered on the requested target and capped for fast MVP rendering.
+**`focus_graph`** — filtered high-signal graph (up to 20 nodes):
+- Always includes target, direct dependents, and direct dependencies
+- Adds high-priority nodes: entry points (+10), high-risk (+8), critical-layer (`api`/`auth`/`database`, +5), indirect dependents (+3)
+- Drops edges where either endpoint is excluded
+- Designed for quick visual understanding of the most important relationships
 
 ---
 
@@ -93,6 +101,14 @@ impact-graph visualize <target>
 ```
 
 runs impact analysis for the current project, writes a temporary standalone HTML graph, and opens it in the default browser.
+
+Running without a target:
+
+```bash
+impact-graph visualize
+```
+
+opens an interactive full-project visualization with a searchable sidebar. Click any symbol to graph its dependencies.
 
 The package also exposes:
 
@@ -115,7 +131,7 @@ The risk engine scores a target using:
 - affected layers
 - critical path signals
 
-Risk scores are returned as structured data so the agent can explain change safety before editing.
+Risk scores are returned as structured data so the agent can explain change safety before editing. The `risk_explanation` field translates these signals into plain-language sentences.
 
 ---
 
@@ -136,7 +152,25 @@ This guidance is rule-based TypeScript logic in `src/engine/decision.ts`.
 
 ---
 
-### 7. Entry Point and Layer Detection
+### 7. Next Actions
+
+The `next_actions` field (module: `src/engine/nextActions.ts`) generates a concrete, imperative checklist distinct from the higher-level `recommended_strategy`. Rules:
+
+| Condition | Actions |
+|---|---|
+| `risk_score > 70` | Add regression tests; make incremental changes |
+| `layers_affected` includes `api` | Avoid breaking API contracts; verify all endpoints |
+| `layers_affected` includes `auth` | Test auth flows; ensure session/token handling |
+| `layers_affected` includes `database` | Validate data consistency; check for unintended mutations |
+| `usage_count > 20` | Refactor incrementally; search for all usages |
+| Combined dependents > 5 | Consider a wrapper; update dependents carefully |
+| Entry points present | Test all user-facing flows |
+
+Output is deduped and capped at 7 items. Falls back to `"Proceed with the smallest behavior-preserving change"` when no rules match.
+
+---
+
+### 8. Entry Point and Layer Detection
 
 Entry point detection recognizes API, route, handler, CLI, and command-style paths.
 
@@ -150,7 +184,7 @@ Layer detection categorizes affected paths into:
 
 ---
 
-### 8. CLI Commands
+### 9. CLI Commands
 
 Running:
 
@@ -170,6 +204,14 @@ impact-graph visualize loginUser
 
 opens a browser visualization for the selected target.
 
+Running:
+
+```bash
+impact-graph visualize
+```
+
+opens the interactive full-project visualization.
+
 ---
 
 ## Project Structure
@@ -180,16 +222,22 @@ opens a browser visualization for the selected target.
     ast.ts
     fs.ts
     graph.ts
+    scanner.ts
     usage.ts
   /cli
+    browser.ts
     install.ts
     visualize.ts
+    visualizeAll.ts
   /engine
     decision.ts
     layers.ts
+    nextActions.ts
     risk.ts
+    riskExplanation.ts
   /graph
     buildGraph.ts
+    focusGraph.ts
     graphTypes.ts
   /mcp
     server.ts
@@ -201,6 +249,7 @@ opens a browser visualization for the selected target.
 /tests
   /analyzer
   /engine
+  /graph
   /mcp
 ```
 
@@ -249,6 +298,8 @@ The workflow runs:
 - ALWAYS call `analyze_impact` before making non-trivial code changes.
 - NEVER assume dependency relationships without using impact data.
 - Assess risk using `risk_score`, `usage_count`, `entry_points`, and `layers_affected`.
+- Use `next_actions` to guide the agent's modification plan step by step.
+- Use `focus_graph` for a quick visual understanding; use `graph` for full dependency context.
 - Explain direct breakage from `direct_dependents`.
 - Explain possible indirect breakage from `indirect_dependents`.
 - Highlight authentication, API, database, core logic, or external behavior involvement.
@@ -280,8 +331,9 @@ When modifying code:
 1. Run `analyze_impact` for the relevant function, file, or module.
 2. Classify risk as safe, moderate, high, or critical.
 3. Explain what breaks immediately and what may break indirectly.
-4. Identify affected layers and external behavior.
-5. Choose the smallest safe change.
-6. Validate with tests and build.
+4. Review `next_actions` for a concrete checklist before editing.
+5. Identify affected layers and external behavior.
+6. Choose the smallest safe change.
+7. Validate with tests and build.
 
 For docs-only or release-only changes, still confirm the affected targets have no runtime dependents when practical.

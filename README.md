@@ -2,6 +2,8 @@
 
 MCP plugin for AST-based impact analysis of TypeScript codebases.
 
+Understand the blast radius of any code change before you make it.
+
 ## Installation
 
 ```bash
@@ -30,50 +32,108 @@ Or run the installer from a project root:
 impact-graph install
 ```
 
+This writes an `impact-graph` entry into `.mcp.json` in the current directory.
+
+---
+
 ## Tools
 
 ### `analyze_impact`
 
-Analyzes the impact of modifying a function, file, or module.
+Analyzes the impact of modifying a function, file, or module in a TypeScript project.
 
 **Input:**
-- `target`: string - function name, file path, or module identifier
-- `root_dir`: string - optional project root directory, defaults to the current working directory
+
+| Field | Type | Required | Description |
+|---|---|---|---|
+| `target` | `string` | Yes | Function name, file path, or module identifier |
+| `root_dir` | `string` | No | Project root directory (defaults to CWD) |
 
 **Output:**
-- `direct_dependents`: Array of immediate callers/usages
-- `indirect_dependents`: Array of downstream dependencies
-- `usage_count`: Number of times the target is used
-- `risk_score`: Numerical risk score (0-100)
-- `risk_factors`: Array of contributing risk factors
-- `entry_points`: Array of entry points that use this target (API, CLI)
-- `layers_affected`: Array of system layers (api, auth, frontend, database, core)
-- `is_critical`: Boolean indicating if target is in a critical path
-- `impact_summary`: Severity, blast radius, and primary concern
-- `recommended_strategy`: Rule-based next steps for safer modification
-- `suggested_tests`: Context-aware test scenarios to run or add
-- `safe_changes`: Changes that are usually safe for this target
-- `risky_changes`: Changes that need extra care for this target
-- `top_dependents`: The most important dependents to inspect first
-- `graph`: Bounded dependency graph centered on the target
 
-Example decision-oriented fields:
+| Field | Type | Description |
+|---|---|---|
+| `target` | `string` | The analyzed target |
+| `direct_dependents` | `string[]` | Files/modules that directly call or import the target |
+| `indirect_dependents` | `string[]` | Downstream callers (transitive) |
+| `usage_count` | `number` | Number of direct usages |
+| `risk_score` | `number` | Numerical risk score (0–100) |
+| `risk_factors` | `string[]` | Scored risk signals contributing to the score |
+| `risk_explanation` | `string[]` | Human-readable reasons behind the risk score |
+| `next_actions` | `string[]` | Prioritized, actionable checklist for safe modification |
+| `entry_points` | `string[]` | Entry points (API routes, CLI commands) that reach this target |
+| `layers_affected` | `string[]` | System layers touched: `api`, `auth`, `frontend`, `database`, `core` |
+| `is_critical` | `boolean` | Whether the target is on a critical path |
+| `impact_summary` | `object` | Severity, blast radius, and primary concern |
+| `recommended_strategy` | `string[]` | High-level rule-based modification strategies |
+| `suggested_tests` | `string[]` | Test scenarios to add or run |
+| `safe_changes` | `string[]` | Change types that are generally safe for this target |
+| `risky_changes` | `string[]` | Change types that need extra care |
+| `top_dependents` | `string[]` | The most important dependents to inspect first (up to 5) |
+| `graph` | `ImpactGraph` | Full bounded dependency graph (up to 30 nodes) centered on the target |
+| `focus_graph` | `ImpactGraph` | Filtered high-signal graph showing only the most important relationships (up to 20 nodes) |
+
+#### `ImpactGraph` shape
+
+```ts
+interface ImpactGraph {
+  nodes: {
+    id: string;
+    label: string;
+    type: 'function' | 'file' | 'module';
+    layer: string;
+    risk: 'low' | 'moderate' | 'high';
+  }[];
+  edges: {
+    from: string;
+    to: string;
+    type: 'calls' | 'imports';
+  }[];
+}
+```
+
+The `focus_graph` applies the same shape but retains only:
+- The target node
+- Direct dependents and direct dependencies
+- High-priority nodes: entry points (+10), high-risk nodes (+8), critical-layer nodes (`api`/`auth`/`database`, +5), indirect dependents (+3)
+- Edges are only included when both endpoints are in the graph
+
+---
+
+#### Example response
 
 ```json
 {
+  "target": "loginUser",
+  "usage_count": 3,
+  "risk_score": 72,
+  "risk_explanation": [
+    "Reachable from user-facing entry points",
+    "Part of authentication flow",
+    "Multiple modules directly depend on this"
+  ],
+  "next_actions": [
+    "Add regression tests before modifying this code",
+    "Make incremental changes instead of large refactors",
+    "Test authentication flows thoroughly after changes",
+    "Ensure session and token handling remain intact",
+    "Test all user-facing flows that rely on this function"
+  ],
   "impact_summary": {
-    "severity": "moderate",
+    "severity": "high",
     "blast_radius": "medium",
     "primary_concern": "affects authentication flow"
   },
   "recommended_strategy": [
-    "avoid breaking API contracts",
+    "add tests before modifying",
     "validate authentication and session behavior"
   ],
   "suggested_tests": [
     "valid login",
     "invalid credentials",
-    "response status"
+    "expired session",
+    "authorized access",
+    "unauthorized access"
   ],
   "safe_changes": [
     "internal logic refactors",
@@ -90,41 +150,42 @@ Example decision-oriented fields:
   ],
   "graph": {
     "nodes": [
-      {
-        "id": "loginUser",
-        "label": "loginUser",
-        "type": "function",
-        "layer": "auth",
-        "risk": "moderate"
-      },
-      {
-        "id": "src/app/api/login/route.ts",
-        "label": "route.ts",
-        "type": "file",
-        "layer": "api",
-        "risk": "low"
-      }
+      { "id": "loginUser", "label": "loginUser", "type": "function", "layer": "auth", "risk": "moderate" },
+      { "id": "src/app/api/login/route.ts", "label": "route.ts", "type": "file", "layer": "api", "risk": "low" }
     ],
     "edges": [
-      {
-        "from": "src/app/api/login/route.ts",
-        "to": "loginUser",
-        "type": "calls"
-      }
+      { "from": "src/app/api/login/route.ts", "to": "loginUser", "type": "calls" }
+    ]
+  },
+  "focus_graph": {
+    "nodes": [
+      { "id": "loginUser", "label": "loginUser", "type": "function", "layer": "auth", "risk": "moderate" },
+      { "id": "src/app/api/login/route.ts", "label": "route.ts", "type": "file", "layer": "api", "risk": "low" }
+    ],
+    "edges": [
+      { "from": "src/app/api/login/route.ts", "to": "loginUser", "type": "calls" }
     ]
   }
 }
 ```
 
+---
+
 ## Visualization
 
-Open a local browser visualization for a target:
+Open a local browser visualization for a specific target:
 
 ```bash
 impact-graph visualize loginUser
 ```
 
-The CLI runs `analyze_impact`, writes a temporary standalone HTML file, and opens it in your default browser. If the browser cannot be opened, it prints the file path and a compact terminal summary.
+Open an interactive full-project visualization (searchable sidebar, click any node to graph it):
+
+```bash
+impact-graph visualize
+```
+
+Both commands run `analyze_impact`, write a temporary standalone HTML file, and open it in the default browser. If the browser cannot be opened, the file path and a compact terminal summary are printed instead.
 
 For React or Next.js apps, the package also exposes a minimal SVG force graph component:
 
@@ -139,13 +200,93 @@ export function GraphPage({ graph }: { graph: ImpactGraph }) {
 
 The viewer uses `d3-force`, colors high-risk nodes red, moderate-risk nodes yellow, and low-risk nodes green.
 
+---
+
+## CLI Commands
+
+| Command | Description |
+|---|---|
+| `impact-graph` | Start MCP server over stdio |
+| `impact-graph install` | Add impact-graph MCP entry to `.mcp.json` in the current project |
+| `impact-graph visualize <target>` | Open browser visualization for a specific function/file |
+| `impact-graph visualize` | Open interactive full-project visualization with searchable sidebar |
+
+---
+
+## Layers Detected
+
+| Layer | Matched paths |
+|---|---|
+| `api` | `app/api/`, `/route.ts`, `/handler.ts`, `/api/` |
+| `auth` | `/auth/`, `auth.ts`, `/middleware.ts`, `/session/` |
+| `frontend` | `/page.tsx`, `/components/`, `.tsx`, `/ui/` |
+| `database` | `/db/`, `/schema`, `/queries`, `/migrations/`, `.sql` |
+| `core` | `/lib/`, `/utils`, `/types`, `/config/`, `/constants` |
+
+---
+
+## `next_actions` Rules
+
+The `next_actions` field produces a concise, deduped checklist (max 7 items) using these deterministic rules:
+
+| Condition | Actions added |
+|---|---|
+| `risk_score > 70` | "Add regression tests before modifying this code"; "Make incremental changes instead of large refactors" |
+| `layers_affected` includes `api` | "Avoid breaking API contracts (request/response shape)"; "Verify all endpoints using this function" |
+| `layers_affected` includes `auth` | "Test authentication flows thoroughly after changes"; "Ensure session and token handling remain intact" |
+| `layers_affected` includes `database` | "Validate data consistency after modification"; "Check for unintended data mutations" |
+| `usage_count > 20` | "Refactor incrementally to avoid widespread breakage"; "Search for all usages before modifying" |
+| Combined dependents > 5 | "Consider creating a wrapper instead of modifying directly"; "Update dependents carefully if changing function signature" |
+| Entry points present | "Test all user-facing flows that rely on this function" |
+
+If no rules match, falls back to: `"Proceed with the smallest behavior-preserving change"`.
+
+---
+
+## `focus_graph` Filtering
+
+The `focus_graph` reduces the full graph to ≤ 20 nodes using an importance score:
+
+| Signal | Score |
+|---|---|
+| Entry point | +10 |
+| High risk | +8 |
+| Direct dependent or direct dependency | +6 |
+| Critical layer (`api`, `auth`, `database`) | +5 |
+| Indirect dependent | +3 |
+
+Priority order when capping:
+1. Target (always kept)
+2. Direct dependents + direct dependencies (always attempted, trimmed by score if over cap)
+3. High-priority nodes (entry points, high risk, critical layers)
+4. Remaining nodes with any positive importance score, closest first
+
+Only edges where both endpoints are included in the focused set are kept.
+
+---
+
 ## Development
 
 ```bash
-npm run dev      # Watch mode
-npm run build    # Production build
-npm test         # Run tests
+npm run dev       # Watch mode
+npm run build     # Production build
+npm test          # Run tests
+npm run lint      # ESLint
+npm pack --dry-run  # Inspect package contents before publish
 ```
+
+---
+
+## Publishing
+
+Publishing is handled via GitHub Actions on each GitHub Release:
+
+1. Update code; run lint, tests, build, and pack dry-run.
+2. `npm version <patch|minor|major>` — bumps `package.json` and creates the git tag.
+3. `git push origin main && git push origin <tag>`.
+4. Create a GitHub Release for that tag — Actions publishes to npm automatically.
+
+---
 
 ## License
 

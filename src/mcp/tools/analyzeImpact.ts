@@ -4,6 +4,7 @@ import { calculateRiskScore, RiskFactors } from '../../engine/risk.js';
 import { detectLayers } from '../../engine/layers.js';
 import { buildDecisionOutput, DecisionOutput, DependentCandidate, ImpactSummary } from '../../engine/decision.js';
 import { buildImpactGraph } from '../../graph/buildGraph.js';
+import { buildFocusGraph } from '../../graph/focusGraph.js';
 import { ImpactGraph } from '../../graph/graphTypes.js';
 import { readProjectFiles, findTypeScriptFiles } from '../../analyzer/fs.js';
 import { generateRiskExplanation } from '../../engine/riskExplanation.js';
@@ -28,6 +29,7 @@ export interface ImpactAnalysisResult extends DecisionOutput {
   risky_changes: string[];
   top_dependents: string[];
   graph: ImpactGraph;
+  focus_graph: ImpactGraph;
 }
 
 const ENTRY_POINT_PATTERNS = [/app\/api\//, /\/route\.ts$/, /\/handler\.ts$/, /cli\//, /\/command\//];
@@ -143,6 +145,12 @@ export async function analyzeImpact(
     indirectDependents,
     isEntryPoint,
   });
+  const focusGraph = buildFocusGraph(graph, {
+    target,
+    direct_dependents: directDependents,
+    indirect_dependents: indirectDependents,
+    entry_points: entryPoints,
+  });
 
   return {
     target,
@@ -157,6 +165,7 @@ export async function analyzeImpact(
     layers_affected: layersAffected,
     is_critical: isCritical,
     graph,
+    focus_graph: focusGraph,
     ...decisionOutput,
   };
 }
