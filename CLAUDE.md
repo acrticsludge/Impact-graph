@@ -110,6 +110,13 @@ impact-graph visualize
 
 opens an interactive full-project visualization with a searchable sidebar. Click any symbol to graph its dependencies.
 
+**Single-target browser visualization** is a self-contained dark-theme page with two panels:
+
+- **Left panel:** SVG graph with Full/Focus toggle, arrowhead edges (dashed = imports), target node glow ring, node hover tooltips, risk color legend.
+- **Right panel (340px, scrollable):** Collapsible sections for all `analyze_impact` fields — stats grid (risk score + bar, severity, blast radius, primary concern), Next Actions, Risk Explanation, Layers Affected (color-tagged), Recommended Strategy, Suggested Tests, Safe/Risky Changes (side-by-side), Top Dependents, Entry Points, All Dependents (collapsed), Risk Factors (collapsed).
+
+No external dependencies — CSS, JS, and SVG are fully inlined. Windows browser opening uses PowerShell `Start-Process` with a `file://` URL to reliably target the default browser (not the `.html` file-extension handler).
+
 The package also exposes:
 
 ```ts

@@ -187,6 +187,35 @@ impact-graph visualize
 
 Both commands run `analyze_impact`, write a temporary standalone HTML file, and open it in the default browser. If the browser cannot be opened, the file path and a compact terminal summary are printed instead.
 
+### Browser visualization layout
+
+The single-target visualization is a dark-theme two-panel page:
+
+**Left panel — dependency graph**
+- SVG node graph with radial layout; target node at center with glow ring
+- **Full Graph / Focus Graph toggle** — switch between the full bounded graph and the filtered high-signal graph
+- Arrowhead edges; dashed lines for `imports`, solid for `calls`
+- Node hover tooltip showing path, layer, type, and risk
+- Color legend: red = high risk, orange = moderate, green = low
+
+**Right panel — full analysis data (340 px, scrollable)**
+
+| Section | Content |
+|---|---|
+| Stats grid | Risk score + color bar, severity, blast radius, primary concern |
+| Next Actions | Imperative checklist (up to 7 items) |
+| Risk Explanation | Plain-language reasons behind the score |
+| Layers Affected | Color-coded layer tags (`api`, `auth`, `database`, `frontend`, `core`) |
+| Recommended Strategy | High-level modification strategies |
+| Suggested Tests | Test scenario tags |
+| Safe & Risky Changes | Side-by-side columns |
+| Top Dependents | Most important files to inspect first |
+| Entry Points | API routes and CLI commands that reach the target |
+| All Dependents (collapsed) | Full direct + indirect dependent lists |
+| Risk Factors (collapsed) | Raw scored risk signal breakdown |
+
+All sections are collapsible. The page has no external dependencies — CSS, JS, and SVG are fully inlined.
+
 For React or Next.js apps, the package also exposes a minimal SVG force graph component:
 
 ```tsx
