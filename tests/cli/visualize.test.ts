@@ -47,10 +47,10 @@ test('renderGraphHtml embeds graph data and escapes title text', () => {
   assert.doesNotMatch(html, /<loginUser>/);
 });
 
-test('runVisualize with no args sets exitCode and does not throw', async () => {
+test('runVisualize with no args does not throw and does not set error exitCode', async () => {
   const originalExitCode = process.exitCode;
   process.exitCode = 0;
   await runVisualize([]);
-  assert.equal(process.exitCode, 1, 'should set exitCode to 1 when no target given');
+  assert.equal(process.exitCode, 0, 'should not error when scanning project symbols');
   process.exitCode = originalExitCode;
 });
