@@ -1,6 +1,6 @@
 import test from 'node:test';
 import assert from 'node:assert/strict';
-import { renderGraphHtml, renderGraphSummary } from '../../src/cli/visualize.js';
+import { runVisualize, renderGraphHtml, renderGraphSummary } from '../../src/cli/visualize.js';
 import { ImpactAnalysisResult } from '../../src/mcp/tools/analyzeImpact.js';
 
 const result: ImpactAnalysisResult = {
@@ -45,4 +45,12 @@ test('renderGraphHtml embeds graph data and escapes title text', () => {
   assert.match(html, /Impact Graph - &lt;loginUser&gt;/);
   assert.match(html, /const graph = /);
   assert.doesNotMatch(html, /<loginUser>/);
+});
+
+test('runVisualize with no args does not throw and does not set error exitCode', async () => {
+  const originalExitCode = process.exitCode;
+  process.exitCode = 0;
+  await runVisualize([]);
+  assert.equal(process.exitCode, 0, 'should not error when scanning project symbols');
+  process.exitCode = originalExitCode;
 });

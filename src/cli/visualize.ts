@@ -1,14 +1,14 @@
 import * as fs from 'node:fs/promises';
 import * as os from 'node:os';
 import * as path from 'node:path';
-import { spawn } from 'node:child_process';
 import { analyzeImpactForPath, ImpactAnalysisResult } from '../mcp/tools/analyzeImpact.js';
+import { openInBrowser } from './browser.js';
+import { runVisualizeAll } from './visualizeAll.js';
 
 export async function runVisualize(args: string[] = process.argv.slice(3)): Promise<void> {
   const target = args[0];
   if (!target) {
-    console.error('Usage: impact-graph visualize <target>');
-    process.exitCode = 1;
+    await runVisualizeAll(process.cwd());
     return;
   }
 
@@ -126,24 +126,6 @@ export function renderGraphHtml(result: ImpactAnalysisResult): string {
   </script>
 </body>
 </html>`;
-}
-
-async function openInBrowser(filePath: string): Promise<void> {
-  const command = getOpenCommand(filePath);
-  await new Promise<void>((resolve, reject) => {
-    const child = spawn(command.bin, command.args, { detached: true, stdio: 'ignore' });
-    child.once('error', reject);
-    child.once('spawn', () => {
-      child.unref();
-      resolve();
-    });
-  });
-}
-
-function getOpenCommand(filePath: string): { bin: string; args: string[] } {
-  if (process.platform === 'win32') return { bin: 'cmd', args: ['/c', 'start', '', filePath] };
-  if (process.platform === 'darwin') return { bin: 'open', args: [filePath] };
-  return { bin: 'xdg-open', args: [filePath] };
 }
 
 function safeFileName(value: string): string {
