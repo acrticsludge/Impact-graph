@@ -7,6 +7,7 @@ import { buildImpactGraph } from '../../graph/buildGraph.js';
 import { ImpactGraph } from '../../graph/graphTypes.js';
 import { readProjectFiles, findTypeScriptFiles } from '../../analyzer/fs.js';
 import { generateRiskExplanation } from '../../engine/riskExplanation.js';
+import { generateNextActions } from '../../engine/nextActions.js';
 
 export interface ImpactAnalysisResult extends DecisionOutput {
   target: string;
@@ -16,6 +17,7 @@ export interface ImpactAnalysisResult extends DecisionOutput {
   risk_score: number;
   risk_factors: string[];
   risk_explanation: string[];
+  next_actions: string[];
   entry_points: string[];
   layers_affected: string[];
   is_critical: boolean;
@@ -102,6 +104,14 @@ export async function analyzeImpact(
     layers_affected: layersAffected,
     is_critical: isCritical,
   });
+  const nextActions = generateNextActions({
+    risk_score: riskResult.score,
+    usage_count: directDependents.length,
+    direct_dependents: directDependents,
+    indirect_dependents: indirectDependents,
+    entry_points: entryPoints,
+    layers_affected: layersAffected,
+  });
   const allDependents = [...directDependents, ...indirectDependents];
   const dependencyDepth = getMaxDependencyDepth(symbolGraph, directDependents);
   const dependentCandidates: DependentCandidate[] = allDependents.map(filePath => ({
@@ -142,6 +152,7 @@ export async function analyzeImpact(
     risk_score: riskResult.score,
     risk_factors: riskResult.breakdown,
     risk_explanation: riskExplanation,
+    next_actions: nextActions,
     entry_points: entryPoints,
     layers_affected: layersAffected,
     is_critical: isCritical,
