@@ -108,7 +108,7 @@ Running without a target:
 impact-graph visualize
 ```
 
-opens an interactive full-project visualization with a searchable sidebar. Click any symbol to graph its dependencies.
+opens an interactive full-project visualization with a searchable sidebar. Click any symbol to swap both the SVG graph and the full analysis panel to that symbol's impact data. The layout and panel sections are identical to the single-target page.
 
 **Single-target browser visualization** is a self-contained dark-theme page with two panels:
 
@@ -234,6 +234,7 @@ opens the interactive full-project visualization.
   /cli
     browser.ts
     install.ts
+    panelTemplate.ts
     visualize.ts
     visualizeAll.ts
   /engine

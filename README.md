@@ -216,6 +216,16 @@ The single-target visualization is a dark-theme two-panel page:
 
 All sections are collapsible. The page has no external dependencies — CSS, JS, and SVG are fully inlined.
 
+### Full-project visualization layout
+
+The no-target visualization (`impact-graph visualize`) adds a **sidebar** on the left. Clicking any symbol swaps both the graph and the analysis panel to show that symbol's impact data. The full analysis panel and Full/Focus toggle are identical to the single-target page.
+
+| Region | Content |
+|---|---|
+| Sidebar (280px) | Searchable list of all exported symbols, sorted by risk; risk-dot, layer badge |
+| Graph wrap (flex) | SVG dependency graph with Full/Focus toggle, arrowhead edges, hover tooltips |
+| Analysis panel (340px) | Same collapsible sections as single-target — stats, Next Actions, Risk Explanation, Layers, Strategy, Tests, Safe/Risky Changes, Top Dependents, Entry Points, All Dependents, Risk Factors |
+
 For React or Next.js apps, the package also exposes a minimal SVG force graph component:
 
 ```tsx
