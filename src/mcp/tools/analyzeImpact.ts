@@ -6,6 +6,7 @@ import { buildDecisionOutput, DecisionOutput, DependentCandidate, ImpactSummary 
 import { buildImpactGraph } from '../../graph/buildGraph.js';
 import { ImpactGraph } from '../../graph/graphTypes.js';
 import { readProjectFiles, findTypeScriptFiles } from '../../analyzer/fs.js';
+import { generateRiskExplanation } from '../../engine/riskExplanation.js';
 
 export interface ImpactAnalysisResult extends DecisionOutput {
   target: string;
@@ -14,6 +15,7 @@ export interface ImpactAnalysisResult extends DecisionOutput {
   usage_count: number;
   risk_score: number;
   risk_factors: string[];
+  risk_explanation: string[];
   entry_points: string[];
   layers_affected: string[];
   is_critical: boolean;
@@ -90,6 +92,16 @@ export async function analyzeImpact(
   };
 
   const riskResult = calculateRiskScore(riskFactors, true);
+  const isCritical = riskResult.score > 75 || riskFactors.isCriticalPath;
+  const riskExplanation = generateRiskExplanation({
+    usage_count: directDependents.length,
+    direct_dependents: directDependents,
+    indirect_dependents: indirectDependents,
+    entry_points: entryPoints,
+    entry_point_types: riskFactors.entryPointTypes,
+    layers_affected: layersAffected,
+    is_critical: isCritical,
+  });
   const allDependents = [...directDependents, ...indirectDependents];
   const dependencyDepth = getMaxDependencyDepth(symbolGraph, directDependents);
   const dependentCandidates: DependentCandidate[] = allDependents.map(filePath => ({
@@ -107,7 +119,7 @@ export async function analyzeImpact(
     indirectDependents,
     entryPoints,
     layersAffected,
-    isCritical: riskResult.score > 75 || riskFactors.isCriticalPath,
+    isCritical,
     dependencyDepth,
     dependents: dependentCandidates,
   });
@@ -129,9 +141,10 @@ export async function analyzeImpact(
     usage_count: directDependents.length,
     risk_score: riskResult.score,
     risk_factors: riskResult.breakdown,
+    risk_explanation: riskExplanation,
     entry_points: entryPoints,
     layers_affected: layersAffected,
-    is_critical: riskResult.score > 75 || riskFactors.isCriticalPath,
+    is_critical: isCritical,
     graph,
     ...decisionOutput,
   };

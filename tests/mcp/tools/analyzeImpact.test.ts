@@ -70,4 +70,12 @@ test('analyzeImpact returns existing fields and decision guidance', async () => 
   assert.ok(result.graph.nodes.some(node => node.id === 'src/db/audit.ts#auditLogin' && node.type === 'function'));
   assert.ok(result.graph.edges.some(edge => edge.from === 'src/app/api/login/route.ts' && edge.to === 'loginUser'));
   assert.ok(result.graph.edges.some(edge => edge.from === 'loginUser' && edge.to === 'src/db/audit.ts#auditLogin'));
+
+  assert.ok(Array.isArray(result.risk_explanation));
+  assert.ok(result.risk_explanation.length > 0);
+  assert.ok(result.risk_explanation.includes('Part of authentication flow'));
+  assert.ok(result.risk_explanation.includes('Affects API responses'));
+  assert.ok(result.risk_explanation.includes('Affects data persistence'));
+  assert.ok(result.risk_explanation.includes('Reachable from user-facing entry points'));
+  assert.equal(new Set(result.risk_explanation).size, result.risk_explanation.length);
 });
