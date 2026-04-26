@@ -13,7 +13,7 @@ export async function openInBrowser(filePath: string): Promise<void> {
 }
 
 export function getOpenCommand(filePath: string): { bin: string; args: string[] } {
-  if (process.platform === 'win32') return { bin: 'cmd', args: ['/c', 'start', '', filePath] };
+  if (process.platform === 'win32') return { bin: 'rundll32', args: ['url.dll,FileProtocolHandler', filePath] };
   if (process.platform === 'darwin') return { bin: 'open', args: [filePath] };
   return { bin: 'xdg-open', args: [filePath] };
 }
