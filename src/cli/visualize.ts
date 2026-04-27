@@ -84,6 +84,7 @@ export function renderGraphHtml(result: ImpactAnalysisResult): string {
       <button class="tb active" id="btn-full"  onclick="switchGraph('full')">Full Graph</button>
       <button class="tb"        id="btn-focus" onclick="switchGraph('focus')">Focus Graph</button>
     </div>
+    <button class="panel-btn" id="panel-btn" onclick="togglePanel()" title="Toggle analysis panel">⊟</button>
     <svg class="gsvg" id="gsvg" role="img" aria-label="Dependency graph"></svg>
     <div class="graph-legend">
       <div class="leg"><div class="leg-dot" style="background:#ef4444"></div>High risk</div>

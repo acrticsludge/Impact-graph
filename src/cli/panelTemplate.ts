@@ -49,9 +49,18 @@ export const PANEL_STYLES = `
   .tip-key { color: #64748b; flex-shrink: 0; }
 
   /* ── analysis panel ── */
-  .panel { width: 340px; border-left: 1px solid #1e293b; overflow-y: auto; flex-shrink: 0; }
+  .panel { width: 340px; border-left: 1px solid #1e293b; overflow-y: auto; flex-shrink: 0;
+           transition: width .15s ease; }
+  .panel.hidden { width: 0; border-left: none; overflow: hidden; }
   .panel::-webkit-scrollbar { width: 4px; }
   .panel::-webkit-scrollbar-thumb { background: #334155; border-radius: 2px; }
+
+  /* ── panel toggle button ── */
+  .panel-btn { position: absolute; top: 10px; right: 10px; z-index: 10;
+               width: 28px; height: 28px; border: 1px solid #334155; border-radius: 6px;
+               background: #1e293b; color: #64748b; font-size: 13px; cursor: pointer;
+               display: flex; align-items: center; justify-content: center; padding: 0; }
+  .panel-btn:hover { color: #e2e8f0; background: #273549; }
 
   /* stats grid */
   .stats { display: grid; grid-template-columns: 1fr 1fr; gap: 8px; padding: 12px; }
@@ -148,15 +157,30 @@ export const PANEL_RENDERER_JS = `
     var width = wrap.clientWidth, height = wrap.clientHeight;
     svg.setAttribute('viewBox', '0 0 ' + width + ' ' + height);
     var cx = width / 2, cy = height / 2;
-    var radius = Math.max(100, Math.min(width, height) / 2.8);
+
     var others = graph.nodes.filter(function(n) { return n.id !== target; });
+    var n = others.length;
+
+    // Scale radius so adjacent nodes have ≥36 px arc-gap; clamp to visible area
+    var minR  = Math.max(110, Math.min(width, height) / 3.2);
+    var byGap = n > 1 ? (n * 36) / (2 * Math.PI) : minR;
+    var maxR  = Math.min(width, height) / 2 - 72;
+    var radius = Math.max(minR, Math.min(byGap, maxR));
+
+    // Hide outer labels when the graph is too dense to read them
+    var showOuterLabels = n <= 20;
+
     var positioned = graph.nodes.map(function(node) {
-      if (node.id === target) return Object.assign({}, node, {x: cx, y: cy});
+      if (node.id === target) return Object.assign({}, node, {x: cx, y: cy, _angle: 0});
       var idx = others.indexOf(node);
-      var angle = (idx / Math.max(1, others.length)) * Math.PI * 2 - Math.PI / 2;
-      return Object.assign({}, node, {x: cx + Math.cos(angle) * radius, y: cy + Math.sin(angle) * radius});
+      var angle = (idx / Math.max(1, n)) * Math.PI * 2 - Math.PI / 2;
+      return Object.assign({}, node, {
+        x: cx + Math.cos(angle) * radius,
+        y: cy + Math.sin(angle) * radius,
+        _angle: angle,
+      });
     });
-    var byId = new Map(positioned.map(function(n) { return [n.id, n]; }));
+    var byId = new Map(positioned.map(function(nd) { return [nd.id, nd]; }));
 
     var NS = 'http://www.w3.org/2000/svg';
     var defs   = document.createElementNS(NS, 'defs');
@@ -167,6 +191,19 @@ export const PANEL_RENDERER_JS = `
     var ap = document.createElementNS(NS, 'path');
     ap.setAttribute('d', 'M0,0 L0,6 L8,3 z'); ap.setAttribute('fill', '#475569');
     marker.appendChild(ap); defs.appendChild(marker); svg.appendChild(defs);
+
+    // Dense-graph hint
+    if (!showOuterLabels) {
+      var hint = document.createElementNS(NS, 'text');
+      hint.setAttribute('x', String(width - 10));
+      hint.setAttribute('y', String(height - 14));
+      hint.setAttribute('text-anchor', 'end');
+      hint.setAttribute('fill', '#334155');
+      hint.setAttribute('font-size', '11');
+      hint.setAttribute('font-family', 'Inter,ui-sans-serif,sans-serif');
+      hint.textContent = 'hover nodes for details';
+      svg.appendChild(hint);
+    }
 
     graph.edges.forEach(function(edge) {
       var from = byId.get(edge.from), to = byId.get(edge.to);
@@ -213,12 +250,24 @@ export const PANEL_RENDERER_JS = `
         });
         circle.addEventListener('mouseleave', function() { tip.classList.remove('show'); });
       }
-      var label = document.createElementNS(NS, 'text');
-      label.setAttribute('x', String(node.x + (isTarget ? 17 : 13)));
-      label.setAttribute('y', String(node.y + 4));
-      label.setAttribute('class', 'node-label');
-      label.textContent = node.label;
-      g.appendChild(circle); g.appendChild(label); svg.appendChild(g);
+      g.appendChild(circle);
+
+      if (isTarget || showOuterLabels) {
+        var nodeR  = isTarget ? 14 : 9;
+        var angle  = node._angle !== undefined ? node._angle : 0;
+        var cosA   = Math.cos(angle);
+        var sinA   = Math.sin(angle);
+        var label  = document.createElementNS(NS, 'text');
+        label.setAttribute('x', String(node.x + cosA * (nodeR + 5)));
+        label.setAttribute('y', String(node.y + sinA * (nodeR + 5)));
+        label.setAttribute('text-anchor', cosA >= -0.1 ? 'start' : 'end');
+        label.setAttribute('dominant-baseline', 'central');
+        label.setAttribute('class', 'node-label');
+        label.textContent = node.label;
+        g.appendChild(label);
+      }
+
+      svg.appendChild(g);
     });
   }
 
@@ -239,6 +288,13 @@ export const PANEL_RENDERER_JS = `
     return '<ul class="paths">' +
       items.map(function(d) { return '<li' + (cls ? ' class="' + cls + '"' : '') + '>' + escHtml(d) + '</li>'; }).join('') +
       '</ul>';
+  }
+
+  function togglePanel() {
+    var panel = document.getElementById('panel');
+    var btn   = document.getElementById('panel-btn');
+    var hidden = panel.classList.toggle('hidden');
+    if (btn) btn.textContent = hidden ? '⊞' : '⊟';
   }
 
   function renderPanel(result, el) {
