@@ -97,7 +97,8 @@ function handleRequest(req: http.IncomingMessage, res: http.ServerResponse): voi
   res.end();
 }
 
-export function startServer(): Promise<void> {
+export function startServer(options?: { unref?: boolean }): Promise<void> {
+  const shouldUnref = options?.unref ?? true;
   return new Promise((resolve, reject) => {
     const server = http.createServer(handleRequest);
     server.once('error', (err: NodeJS.ErrnoException) => {
@@ -107,8 +108,7 @@ export function startServer(): Promise<void> {
       reject(err);
     });
     server.listen(PORT, HOST, () => {
-      // unref so the server doesn't prevent the parent process from exiting
-      server.unref();
+      if (shouldUnref) server.unref();
       console.log(`[impact-graph] Visualization server running at ${BASE_URL}`);
       resolve();
     });

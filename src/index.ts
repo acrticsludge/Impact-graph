@@ -10,7 +10,7 @@ if (command === 'install') {
   await runVisualize();
 } else if (command === '__serve') {
   const { startServer } = await import('./cli/devServer.js');
-  await startServer();
+  await startServer({ unref: false });
 } else {
   const { MCPServer } = await import('./mcp/server.js');
   const server = new MCPServer();
