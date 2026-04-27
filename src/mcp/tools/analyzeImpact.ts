@@ -152,6 +152,13 @@ export async function analyzeImpact(
     entry_points: entryPoints,
   });
 
+  // Sync target node risk with the authoritative risk_score so the graph color matches the badge
+  const canonicalRisk = riskResult.score >= 50 ? 'high' : riskResult.score >= 25 ? 'moderate' : 'low';
+  for (const g of [graph, focusGraph]) {
+    const node = g.nodes.find(n => n.id === target);
+    if (node) node.risk = canonicalRisk;
+  }
+
   return {
     target,
     direct_dependents: directDependents,

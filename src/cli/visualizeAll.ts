@@ -115,6 +115,14 @@ ${PANEL_STYLES}
     /* ── inner right area (graph + panel) ── */
     .inner-main { display: flex; flex: 1; overflow: hidden; }
 
+    /* ── graph top overlay bar (toggle + symbol info) ── */
+    .graph-topbar { position: absolute; top: 10px; left: 10px; right: 44px; z-index: 10;
+                    display: flex; align-items: center; gap: 10px; }
+    .graph-topbar .graph-toggle { position: static; }
+    #h-bar { display: flex; align-items: center; gap: 8px; flex: 1; min-width: 0; overflow: hidden; }
+    #h-bar .h-target { font-size: 13px; white-space: nowrap; overflow: hidden; text-overflow: ellipsis; }
+    #h-bar .h-meta   { white-space: nowrap; overflow: hidden; text-overflow: ellipsis; margin-left: 0; }
+
     /* placeholder when nothing selected */
     .placeholder { display: flex; align-items: center; justify-content: center;
                    flex: 1; color: #475569; font-size: 14px; }
@@ -165,12 +173,14 @@ ${PANEL_RENDERER_JS}
     if (svg) return;
     var inner = document.getElementById('inner-main');
     inner.innerHTML =
-      '<header id="h-bar" style="flex-shrink:0"></header>' +
       '<div class="main" style="flex:1;overflow:hidden">' +
         '<div class="graph-wrap">' +
-          '<div class="graph-toggle">' +
-            '<button class="tb active" id="btn-full"  onclick="switchGraph(\\'full\\')">Full Graph</button>' +
-            '<button class="tb"        id="btn-focus" onclick="switchGraph(\\'focus\\')">Focus Graph</button>' +
+          '<div class="graph-topbar">' +
+            '<div class="graph-toggle">' +
+              '<button class="tb active" id="btn-full"  onclick="switchGraph(\\'full\\')">Full Graph</button>' +
+              '<button class="tb"        id="btn-focus" onclick="switchGraph(\\'focus\\')">Focus Graph</button>' +
+            '</div>' +
+            '<div id="h-bar"></div>' +
           '</div>' +
           '<button class="panel-btn" id="panel-btn" onclick="togglePanel()" title="Toggle analysis panel">⊟</button>' +
           '<svg class="gsvg" id="gsvg" role="img" aria-label="Dependency graph"></svg>' +

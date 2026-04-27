@@ -1,6 +1,6 @@
 {
   "name": "impact-graph-mcp",
-  "version": "0.5.2",
+  "version": "0.5.3",
   "description": "MCP plugin for AST-based impact analysis of TypeScript codebases",
   "type": "module",
   "repository": {
