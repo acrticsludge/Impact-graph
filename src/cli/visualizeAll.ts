@@ -6,6 +6,7 @@ import { extractProjectSymbols, ProjectSymbol } from '../analyzer/scanner.js';
 import { findTypeScriptFiles, readProjectFiles } from '../analyzer/fs.js';
 import { openInBrowser } from './browser.js';
 import { escapeHtml, PANEL_STYLES, PANEL_RENDERER_JS } from './panelTemplate.js';
+import { BASE_URL, ensureServer, pushHtml } from './devServer.js';
 
 export interface SymbolData {
   name: string;
@@ -49,16 +50,25 @@ export async function runVisualizeAll(rootDir: string): Promise<void> {
     return;
   }
   console.log(`Analyzed ${symbols.length} symbols. Generating visualization...`);
-  const html = renderProjectHtml(symbols);
-  const filePath = path.join(os.tmpdir(), `impact-graph-project-${Date.now()}.html`);
-  await fs.writeFile(filePath, html, 'utf-8');
 
+  if (process.env['IMPACT_GRAPH_NO_SERVER'] === '1') return;
+
+  const html = renderProjectHtml(symbols);
   try {
-    await openInBrowser(filePath);
-    console.log(`Opened project visualization: ${filePath}`);
+    const justStarted = await ensureServer();
+    await pushHtml(html);
+    if (justStarted) {
+      await openInBrowser(BASE_URL);
+      console.log(`Opened project visualization: ${BASE_URL}`);
+    } else {
+      console.log(`Updated visualization at ${BASE_URL}`);
+    }
   } catch (error) {
-    console.error(`Could not open browser: ${error instanceof Error ? error.message : String(error)}`);
-    console.error(`Open this file manually: ${filePath}`);
+    console.error(`Could not start visualization server: ${error instanceof Error ? error.message : String(error)}`);
+    const filePath = path.join(os.tmpdir(), `impact-graph-project-${Date.now()}.html`);
+    await fs.writeFile(filePath, html, 'utf-8');
+    console.error(`Falling back to file: ${filePath}`);
+    try { await openInBrowser(filePath); } catch { /* ignore */ }
   }
 }
 

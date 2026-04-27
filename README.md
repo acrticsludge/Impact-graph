@@ -185,7 +185,11 @@ Open an interactive full-project visualization (searchable sidebar, click any no
 impact-graph visualize
 ```
 
-Both commands run `analyze_impact`, write a temporary standalone HTML file, and open it in the default browser. If the browser cannot be opened, the file path and a compact terminal summary are printed instead.
+Both commands run `analyze_impact` and push the result to a local web server that stays running in the background at **http://127.0.0.1:51789**. On first run the browser opens to that URL automatically. Every subsequent `visualize` call updates the same open tab in place — no new files, no new tabs.
+
+If the server fails to start (e.g., port conflict), the command falls back to writing a temporary HTML file and opening it directly. Set `IMPACT_GRAPH_PORT` to use a different port.
+
+To stop the background server, kill the `node` process via Task Manager (Windows) or `kill $(lsof -ti:51789)` (macOS/Linux).
 
 ### Browser visualization layout
 

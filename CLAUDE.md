@@ -100,7 +100,7 @@ Running:
 impact-graph visualize <target>
 ```
 
-runs impact analysis for the current project, writes a temporary standalone HTML graph, and opens it in the default browser.
+runs impact analysis for the current project and pushes the result to a local web server at **http://127.0.0.1:51789**. On first run the browser opens automatically. Re-running the command updates the same open tab via SSE live reload — no new files, no new tabs.
 
 Running without a target:
 
@@ -110,12 +110,14 @@ impact-graph visualize
 
 opens an interactive full-project visualization with a searchable sidebar. Click any symbol to swap both the SVG graph and the full analysis panel to that symbol's impact data. The layout and panel sections are identical to the single-target page.
 
-**Single-target browser visualization** is a self-contained dark-theme page with two panels:
+The background server stays running until manually killed. Set `IMPACT_GRAPH_PORT` to override the default port (51789). If the server cannot start, the command falls back to writing a temporary HTML file.
+
+**Single-target browser visualization** is a dark-theme page with two panels served over the local dev server:
 
 - **Left panel:** SVG graph with Full/Focus toggle, arrowhead edges (dashed = imports), target node glow ring, node hover tooltips, risk color legend.
 - **Right panel (340px, scrollable):** Collapsible sections for all `analyze_impact` fields — stats grid (risk score + bar, severity, blast radius, primary concern), Next Actions, Risk Explanation, Layers Affected (color-tagged), Recommended Strategy, Suggested Tests, Safe/Risky Changes (side-by-side), Top Dependents, Entry Points, All Dependents (collapsed), Risk Factors (collapsed).
 
-No external dependencies — CSS, JS, and SVG are fully inlined. Windows browser opening uses PowerShell `Start-Process` with a `file://` URL to reliably target the default browser (not the `.html` file-extension handler).
+No external dependencies — CSS, JS, and SVG are fully inlined.
 
 The package also exposes:
 
@@ -233,6 +235,7 @@ opens the interactive full-project visualization.
     usage.ts
   /cli
     browser.ts
+    devServer.ts
     install.ts
     panelTemplate.ts
     visualize.ts

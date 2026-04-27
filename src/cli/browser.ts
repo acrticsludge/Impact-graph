@@ -12,15 +12,15 @@ export async function openInBrowser(filePath: string): Promise<void> {
   });
 }
 
-export function getOpenCommand(filePath: string): { bin: string; args: string[] } {
+export function getOpenCommand(pathOrUrl: string): { bin: string; args: string[] } {
+  const isHttpUrl = pathOrUrl.startsWith('http://') || pathOrUrl.startsWith('https://');
   if (process.platform === 'win32') {
-    // PowerShell Start-Process with a file:// URL reliably opens the default
-    // browser. cmd "start" quoting is mangled by Node's arg escaping when
-    // spawned without shell:true; rundll32 FileProtocolHandler uses the .html
-    // file-extension association which may be Notepad on some systems.
-    const fileUrl = 'file:///' + filePath.replace(/\\/g, '/');
-    return { bin: 'powershell', args: ['-NoProfile', '-NonInteractive', '-Command', `Start-Process '${fileUrl}'`] };
+    // PowerShell Start-Process reliably opens the default browser for both
+    // file:// and http:// URLs. cmd "start" quoting is mangled by Node arg
+    // escaping; rundll32 uses the .html extension handler (may be Notepad).
+    const url = isHttpUrl ? pathOrUrl : 'file:///' + pathOrUrl.replace(/\\/g, '/');
+    return { bin: 'powershell', args: ['-NoProfile', '-NonInteractive', '-Command', `Start-Process '${url}'`] };
   }
-  if (process.platform === 'darwin') return { bin: 'open', args: [filePath] };
-  return { bin: 'xdg-open', args: [filePath] };
+  if (process.platform === 'darwin') return { bin: 'open', args: [pathOrUrl] };
+  return { bin: 'xdg-open', args: [pathOrUrl] };
 }

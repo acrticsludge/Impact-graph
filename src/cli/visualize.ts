@@ -5,6 +5,7 @@ import { analyzeImpactForPath, ImpactAnalysisResult } from '../mcp/tools/analyze
 import { openInBrowser } from './browser.js';
 import { runVisualizeAll } from './visualizeAll.js';
 import { escapeHtml, PANEL_STYLES, PANEL_RENDERER_JS } from './panelTemplate.js';
+import { BASE_URL, ensureServer, pushHtml } from './devServer.js';
 
 export async function runVisualize(args: string[] = process.argv.slice(3)): Promise<void> {
   const target = args[0];
@@ -14,15 +15,25 @@ export async function runVisualize(args: string[] = process.argv.slice(3)): Prom
   }
 
   const result = await analyzeImpactForPath(target, process.cwd());
-  const htmlPath = await writeGraphHtml(result);
   console.log(renderGraphSummary(result));
 
+  if (process.env['IMPACT_GRAPH_NO_SERVER'] === '1') return;
+
+  const html = renderGraphHtml(result);
   try {
-    await openInBrowser(htmlPath);
-    console.log(`Opened graph visualization: ${htmlPath}`);
+    const justStarted = await ensureServer();
+    await pushHtml(html);
+    if (justStarted) {
+      await openInBrowser(BASE_URL);
+      console.log(`Opened graph visualization: ${BASE_URL}`);
+    } else {
+      console.log(`Updated visualization at ${BASE_URL}`);
+    }
   } catch (error) {
-    console.error(`Could not open browser: ${error instanceof Error ? error.message : String(error)}`);
-    console.error(`Open this file manually: ${htmlPath}`);
+    console.error(`Could not start visualization server: ${error instanceof Error ? error.message : String(error)}`);
+    const htmlPath = await writeGraphHtml(result);
+    console.error(`Falling back to file: ${htmlPath}`);
+    try { await openInBrowser(htmlPath); } catch { /* ignore */ }
   }
 }
 

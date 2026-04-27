@@ -1,6 +1,6 @@
 {
   "name": "impact-graph-mcp",
-  "version": "0.4.2",
+  "version": "0.5.0",
   "description": "MCP plugin for AST-based impact analysis of TypeScript codebases",
   "type": "module",
   "repository": {
@@ -36,6 +36,7 @@
   "scripts": {
     "build": "tsc",
     "dev": "tsc --watch",
+    "pretest": "node scripts/kill-dev-server.mjs",
     "test": "tsx --test tests/**/*.test.ts",
     "test:watch": "tsx --watch --test tests/**/*.test.ts",
     "lint": "eslint src/**/*.ts",

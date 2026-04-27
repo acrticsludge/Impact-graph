@@ -8,6 +8,9 @@ if (command === 'install') {
 } else if (command === 'visualize') {
   const { runVisualize } = await import('./cli/visualize.js');
   await runVisualize();
+} else if (command === '__serve') {
+  const { startServer } = await import('./cli/devServer.js');
+  await startServer();
 } else {
   const { MCPServer } = await import('./mcp/server.js');
   const server = new MCPServer();

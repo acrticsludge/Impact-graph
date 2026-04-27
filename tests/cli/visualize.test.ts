@@ -3,6 +3,9 @@ import assert from 'node:assert/strict';
 import { runVisualize, renderGraphHtml, renderGraphSummary } from '../../src/cli/visualize.js';
 import { ImpactAnalysisResult } from '../../src/mcp/tools/analyzeImpact.js';
 
+// Prevent tests from spawning a background server or opening a browser
+process.env['IMPACT_GRAPH_NO_SERVER'] = '1';
+
 const sampleGraph = {
   nodes: [
     { id: 'loginUser', label: 'loginUser', type: 'function' as const, layer: 'auth', risk: 'moderate' as const },
